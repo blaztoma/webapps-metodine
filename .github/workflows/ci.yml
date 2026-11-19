@@ -1,0 +1,98 @@
+# CI for the LLM examples (llm/): runs on every push to main and on every pull request.
+# What it shows is in the DevOps lecture, "CI: every push is checked" and "CI in code: GitHub Actions".
+# No API key is needed and no model is called: the smoke test checks everything except the paid part.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read            # least privilege: this workflow only reads the code
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }} · lint + smoke test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.4"]   # the oldest version we support and the newest one we use
+    defaults:
+      run:
+        working-directory: llm
+    steps:
+      - uses: actions/checkout@v5
+
+      # a third-party action, pinned by its full commit SHA (a tag could be moved)
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962   # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, mbstring, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --no-check-publish
+
+      - name: Install the libraries (exact versions from composer.lock)
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint every PHP file
+        run: find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Create the demo database
+        run: php data/init.php
+
+      - name: Start PHP's built-in web server
+        run: |
+          PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8000 -t . > /tmp/php-server.log 2>&1 &
+          sleep 1
+
+      - name: Smoke test
+        run: php tests/smoke.php http://127.0.0.1:8000 --chat-without-key
+
+      - name: Show the server log
+        if: failure()
+        run: cat /tmp/php-server.log
+
+  docker:
+    name: Docker image · build + smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the image, tagged with the commit
+        run: docker build -t parcelshop-llm:${{ github.sha }} llm
+
+      - name: Start a container (no API key)
+        run: docker run -d --name app -p 8080:80 parcelshop-llm:${{ github.sha }}
+
+      - name: Wait until healthz.php answers 200
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/healthz.php && exit 0
+            sleep 1
+          done
+          exit 1
+
+      # the smoke test needs PHP and the MCP client library on the runner
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962   # 2.40.0
+        with:
+          php-version: "8.4"
+          extensions: curl, mbstring
+          tools: composer:v2
+          coverage: none
+      - name: Install the libraries for the test
+        working-directory: llm
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Smoke test against the container (Apache, .htaccess rules)
+        working-directory: llm
+        run: php tests/smoke.php http://localhost:8080 --apache --chat-without-key
+
+      - name: Show the container log
+        if: failure()
+        run: docker logs app

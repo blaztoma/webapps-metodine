@@ -20,6 +20,9 @@ return $local + [
     'rpc_url' => getenv('LLM_RPC_URL') ?: null,
     'mcp_url' => getenv('LLM_MCP_URL') ?: null,
 
-    // Host names the MCP server accepts (DNS rebinding protection). Add your domain on a real server.
-    'mcp_allowed_hosts' => ['localhost', '127.0.0.1', '[::1]'],
+    // Host names the MCP server accepts (DNS rebinding protection). Add your domain on a real server,
+    // here or with MCP_ALLOWED_HOSTS=localhost,my-app.example.com (e.g. in the hosting platform's settings).
+    'mcp_allowed_hosts' => getenv('MCP_ALLOWED_HOSTS')
+        ? array_map('trim', explode(',', getenv('MCP_ALLOWED_HOSTS')))
+        : ['localhost', '127.0.0.1', '[::1]'],
 ];

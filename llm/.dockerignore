@@ -1,0 +1,16 @@
+# Never in the image: secrets and local state
+config.local.php
+.env
+.env.*
+vendor/
+data/*.sqlite*
+data/mcp-sessions/
+
+# Not needed to run the app
+tests/
+slides/
+*.md
+Dockerfile
+compose.yaml
+.dockerignore
+.gitignore

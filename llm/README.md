@@ -55,6 +55,9 @@ llm/
 ├─ index.html                 pradžios puslapis su nuorodomis į abu pavyzdžius
 ├─ slides/                    paskaitos skaidrės (LLM_integration_2026.pptx, anglų k.)
 ├─ db-view.php                mygtukas „DB“: visa demonstracinė bazė tik skaitymui (mokymuisi)
+├─ healthz.php                sveikatos patikra: bibliotekos + DB → 200 arba 503
+├─ Dockerfile, compose.yaml   paleidimas su Docker (docker compose up --build)
+├─ tests/smoke.php            dūmų testas be API rakto; jį leidžia ir CI (../.github/workflows/ci.yml)
 ├─ config.php                 nustatymai (modelis, ribos, adresai)
 ├─ config.local.example.php   → nukopijuokite į config.local.php ir įrašykite API raktą
 ├─ composer.json              anthropic-ai/sdk, guzzlehttp/guzzle, mcp/sdk
@@ -116,6 +119,53 @@ Demonstraciniai naudotojai (pasirenkami puslapio viršuje):
 - Mygtukas **DB** atidaro visas lenteles: paryškintos dabartinio naudotojo eilutės — tik jas mato įrankiai.
   Taip galima palyginti, ką grąžino įrankis, su tuo, kas iš tikrųjų yra duomenų bazėje.
 
+## Paleidimas su Docker
+
+Vietoje XAMPP galima naudoti [Docker](https://www.docker.com/): tas pats Apache + PHP + SQLite viename konteineryje.
+
+```bash
+cd webapps-metodine/llm
+docker compose up --build
+```
+
+Atidarykite <http://localhost:8080/>. API raktą Compose paima iš aplinkos kintamojo `ANTHROPIC_API_KEY` arba iš
+`.env` failo šalia `compose.yaml` (`ANTHROPIC_API_KEY=sk-ant-…`; `.env` į git nepatenka). Be rakto veikia puslapiai,
+API ir MCP serveris — tik modelio kvietimai praneša, kad rakto nėra.
+
+- `Dockerfile` turi du etapus: `composer:2` įdiegia bibliotekas pagal `composer.lock`, o galutiniame `php:8.4-apache`
+  atvaizde lieka tik tai, ko reikia veikimui. Raktas ir `config.local.php` į atvaizdą nepatenka (`.dockerignore`).
+- `healthz.php` tikrina bibliotekas ir duomenų bazę ir atsako 200 arba 503. Jį naudoja Docker `HEALTHCHECK`
+  (`docker ps` rodo *healthy*); tinka ir platformos health check'ui ar uptime stebėjimui.
+- Duomenų bazė yra konteinerio viduje: po `docker compose down` ir `up` vėl pradiniai duomenys.
+- Tą patį atvaizdą galima diegti į Render, Azure Container Apps, Google Cloud Run ar kitą platformą, kuri paleidžia
+  Docker atvaizdus. Platformos nustatymuose nurodykite `ANTHROPIC_API_KEY`, o jei MCP serverį naudos išoriniai
+  klientai, ir `MCP_ALLOWED_HOSTS=localhost,jūsų-domenas`.
+
+## Automatiniai patikrinimai (CI)
+
+Kiekvienas `push` į `main` ir kiekvienas pull request paleidžia [GitHub Actions darbą](../.github/workflows/ci.yml)
+(skaidrės *CI: every push is checked*, *CI in code: GitHub Actions*):
+
+| Darbas | Ką daro |
+|---|---|
+| **PHP 8.1 ir 8.4** | `composer validate` ir `install`, visų `.php` failų sintaksės patikra (`php -l`), DB sukūrimas, PHP įtaisytasis serveris ir dūmų testas |
+| **Docker** | atvaizdo kūrimas (žyma — commit SHA), konteinerio paleidimas, laukimas, kol `healthz.php` atsakys 200, ir tas pats dūmų testas per Apache |
+
+Dūmų testas [`tests/smoke.php`](tests/smoke.php) API rakto nereikalauja ir modelio nekviečia, todėl nieko nekainuoja.
+Jis tikrina, ar programa veikia ir laikosi taisyklių: Ona mato savo siuntą 150, bet ne Jono 152; be žetono — 401;
+JSON-RPC klaidų kodai; MCP `tools/list` ir `tools/call`; ar `.htaccess` slepia `config.php`, `data/` ir `vendor/`;
+ar `chat.php` pasiekia MCP serverį ir aiškiai praneša apie trūkstamą raktą.
+
+```bash
+php tests/smoke.php http://localhost/metodine/llm --apache       # XAMPP
+php tests/smoke.php http://localhost:8080 --apache                # Docker
+```
+
+`--chat-without-key` naudokite tik serveriui be rakto (taip daro CI): su raktu `chat.php` kviestų mokamą modelį.
+
+> **Pabandykite:** `shared/db.php` funkcijoje `package_of()` pašalinkite `AND owner_id = ?` (ir `$userId` iš `execute()`)
+> ir sukurkite pull request. CI turi tapti raudonas: Ona pradės matyti Jono siuntą 152.
+
 ## Siuntų API (1 pavyzdys) be modelio
 
 ```bash
@@ -146,7 +196,8 @@ ir senesnę su `initialize` ir `Mcp-Session-Id` (sesijos saugomos `data/mcp-sess
 - Įkelkite visą katalogą su `vendor/` arba serveryje paleiskite `composer install --no-dev`.
 - `config.local.php` su raktu — tik serveryje; `.htaccess` neleidžia jo atsisiųsti (taip pat `data/`, `vendor/`).
 - `db-view.php` rodo visą bazę, įskaitant demonstracinius žetonus. Mokymuisi tai gerai, bet tikroje programoje tokio puslapio neturi būti.
-- Į `mcp_allowed_hosts` (config) įrašykite savo domeną — kitaip MCP serveris atsakys 403 (DNS rebinding apsauga).
+- Į `mcp_allowed_hosts` (config) arba aplinkos kintamąjį `MCP_ALLOWED_HOSTS` įrašykite savo domeną — kitaip MCP serveris atsakys 403 (DNS rebinding apsauga).
+- Platformos health check'ui ar uptime stebėjimui nurodykite `/healthz.php`.
 - Jei `Authorization` antraštė nepasiekia PHP (CGI/FPM), ją perduoda šakninis `.htaccess`.
 
 ## Pastabos

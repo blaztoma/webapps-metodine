@@ -55,6 +55,9 @@ llm/
 ├─ index.html                 start page with links to both examples
 ├─ slides/                    lecture slides (LLM_integration_2026.pptx)
 ├─ db-view.php                the "DB" button: the whole demo database, read-only (learning aid)
+├─ healthz.php                health check: libraries + DB → 200 or 503
+├─ Dockerfile, compose.yaml   running it with Docker (docker compose up --build)
+├─ tests/smoke.php            smoke test without an API key; CI runs it too (../.github/workflows/ci.yml)
 ├─ config.php                 settings (model, limits, URLs)
 ├─ config.local.example.php   → copy to config.local.php and put your API key there
 ├─ composer.json              anthropic-ai/sdk, guzzlehttp/guzzle, mcp/sdk
@@ -119,6 +122,53 @@ answers in the language of the question.
 - The **DB** button opens all tables: the current user's rows are highlighted — the tools can see only those.
   Compare what a tool returned with what is really in the database.
 
+## Running it with Docker
+
+Instead of XAMPP you can use [Docker](https://www.docker.com/): the same Apache + PHP + SQLite in one container.
+
+```bash
+cd webapps-metodine/llm
+docker compose up --build
+```
+
+Open <http://localhost:8080/>. Compose takes the API key from the `ANTHROPIC_API_KEY` environment variable or from a
+`.env` file next to `compose.yaml` (`ANTHROPIC_API_KEY=sk-ant-…`; `.env` is never committed). Without a key the pages,
+the API and the MCP server work; only the model calls report that the key is missing.
+
+- The `Dockerfile` has two stages: `composer:2` installs the libraries from `composer.lock`, and the final
+  `php:8.4-apache` image keeps only what is needed to run. The key and `config.local.php` never get into the image (`.dockerignore`).
+- `healthz.php` checks the libraries and the database and answers 200 or 503. Docker's `HEALTHCHECK` uses it
+  (`docker ps` shows *healthy*); it also works as a platform health check or an uptime monitor.
+- The database lives inside the container: after `docker compose down` and `up` you have fresh demo data.
+- The same image can be deployed to Render, Azure Container Apps, Google Cloud Run or any platform that runs Docker
+  images. Set `ANTHROPIC_API_KEY` in the platform's settings and, if external MCP clients will use the MCP server,
+  `MCP_ALLOWED_HOSTS=localhost,your-domain`.
+
+## Automatic checks (CI)
+
+Every push to `main` and every pull request starts a [GitHub Actions workflow](../.github/workflows/ci.yml)
+(slides *CI: every push is checked*, *CI in code: GitHub Actions*):
+
+| Job | What it does |
+|---|---|
+| **PHP 8.1 and 8.4** | `composer validate` and `install`, a syntax check of every `.php` file (`php -l`), the database, PHP's built-in server and the smoke test |
+| **Docker** | builds the image (tagged with the commit SHA), starts a container, waits until `healthz.php` answers 200, and runs the same smoke test through Apache |
+
+The smoke test [`tests/smoke.php`](tests/smoke.php) needs no API key and calls no model, so it costs nothing. It checks
+that the app runs and keeps its rules: Ona sees her package 150 but not Jonas's 152; no token → 401; the JSON-RPC
+error codes; MCP `tools/list` and `tools/call`; that `.htaccess` hides `config.php`, `data/` and `vendor/`; and that
+`chat.php` reaches the MCP server and reports the missing key clearly.
+
+```bash
+php tests/smoke.php http://localhost/metodine/llm --apache       # XAMPP
+php tests/smoke.php http://localhost:8080 --apache                # Docker
+```
+
+Use `--chat-without-key` only for a server without a key (as CI does): with a key, `chat.php` would call the paid model.
+
+> **Try it:** in `shared/db.php`, remove `AND owner_id = ?` from `package_of()` (and `$userId` from `execute()`)
+> and open a pull request. CI should turn red: Ona would start seeing Jonas's package 152.
+
 ## The parcel API (example 1) without the model
 
 ```bash
@@ -150,7 +200,8 @@ SDK client) and the older one with `initialize` and `Mcp-Session-Id` (sessions a
 - Use an API key ("Somewhere else" in the Claude Console) and keep `config.local.php` on the server only;
   `.htaccess` blocks it from download (and also `data/` and `vendor/`).
 - `db-view.php` shows the whole database, including the demo tokens. Fine for learning; a real application must not have such a page.
-- Add your domain to `mcp_allowed_hosts` (config) — otherwise the MCP server answers 403 (DNS rebinding protection).
+- Add your domain to `mcp_allowed_hosts` (config) or to the `MCP_ALLOWED_HOSTS` environment variable — otherwise the MCP server answers 403 (DNS rebinding protection).
+- Point the platform's health check or an uptime monitor at `/healthz.php`.
 - If the `Authorization` header does not reach PHP (CGI/FPM), the root `.htaccess` passes it on.
 
 ## Notes
