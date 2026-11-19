@@ -1,5 +1,7 @@
 # LLM integravimas į saityno programas — pavyzdžiai
 
+**Lietuviškai** · [English](README_EN.md)
+
 Du nedideli PHP projektai skaidrėms iliustruoti. Abu naudoja tą pačią **ParcelShop** siuntų
 duomenų bazę (SQLite) ir tą patį pokalbio puslapį, kuriame matosi kiekvienas serverio žingsnis.
 

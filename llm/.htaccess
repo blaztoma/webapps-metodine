@@ -10,6 +10,6 @@ SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 RedirectMatch 403 /(vendor|data)(/|$)
 
 # Secrets and build files are never served.
-<FilesMatch "^(config(\.local)?(\.example)?\.php|composer\.(json|lock)|README\.md|\.gitignore)$">
+<FilesMatch "^(config(\.local)?(\.example)?\.php|composer\.(json|lock)|README(_EN)?\.md|\.gitignore)$">
     Require all denied
 </FilesMatch>

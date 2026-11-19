@@ -1,5 +1,7 @@
 # webapps-metodine
 
+**Lietuviškai** · [English](README_EN.md)
+
 Modulio „Saityno taikomųjų programų projektavimas“ (T120B165) / *Web Application Design* mokomieji pavyzdžiai.
 
 | Katalogas | Turinys | Skaidrės |
