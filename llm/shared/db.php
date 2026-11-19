@@ -11,8 +11,29 @@ ini_set('log_errors', '1');
 
 set_exception_handler(function (Throwable $e): void {
     error_log((string) $e);
-    send_json_error(get_class($e) . ': ' . $e->getMessage());
+    send_json_error(describe_error($e));
 });
+
+/**
+ * The whole chain of messages: SDK exceptions such as "Anthropic API Connection Error"
+ * carry the real cause (e.g. a cURL SSL error) in getPrevious().
+ */
+function describe_error(Throwable $e): string
+{
+    $parts = [];
+    for ($x = $e; $x !== null; $x = $x->getPrevious()) {
+        $m = trim($x->getMessage());
+        if ($m !== '' && !in_array($m, $parts, true)) {
+            $parts[] = $m;
+        }
+    }
+    $msg = implode(' — ', $parts) ?: get_class($e);
+    if (preg_match('/SSL certificate|local issuer|cURL error 60/i', $msg)) {
+        $msg .= ' → PHP neranda SSL sertifikatų paketo: php.ini nustatykite curl.cainfo ir openssl.cafile '
+              . '(pvz., H:\xamppV8\apache\bin\curl-ca-bundle.crt) ir perkraukite Apache.';
+    }
+    return $msg;
+}
 
 register_shutdown_function(function (): void {
     $err = error_get_last();

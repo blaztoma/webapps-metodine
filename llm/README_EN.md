@@ -68,6 +68,11 @@ llm/
 > Uncomment `extension=pdo_sqlite` and `extension=sqlite3` in that PHP's `php.ini`, then restart Apache.
 > Error details are in `apache\logs\error.log`.
 
+> **"Anthropic API Connection Error" / `cURL error 60: … unable to get local issuer certificate`** — PHP cannot
+> find a CA certificate bundle. In the `php.ini` of the PHP Apache uses, set
+> `curl.cainfo = "H:\xamppV8\apache\bin\curl-ca-bundle.crt"` and `openssl.cafile` to the same path
+> (or to a current <https://curl.se/ca/cacert.pem>), then restart Apache.
+
 Demo users (chosen at the top of the page):
 
 | User | Bearer token | Packages |

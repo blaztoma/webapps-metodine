@@ -97,7 +97,8 @@ try {
     }
     finish(['answer' => 'Per daug įrankių žingsnių — sustabdyta.', 'trace' => $trace, 'usage' => $usage], 500);
 } catch (Throwable $e) {
-    finish(['error' => get_class($e) . ': ' . $e->getMessage(), 'trace' => $trace], 500);
+    error_log((string) $e);
+    finish(['error' => describe_error($e), 'trace' => $trace], 500);
 }
 
 /** Closes the MCP session (DELETE on the server) before answering the browser. */

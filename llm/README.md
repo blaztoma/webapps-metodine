@@ -68,6 +68,11 @@ llm/
 > To PHP `php.ini` faile atkomentuokite `extension=pdo_sqlite` ir `extension=sqlite3`, tada perkraukite Apache.
 > Klaidų detalės — `apache\logs\error.log`.
 
+> **„Anthropic API Connection Error“ / `cURL error 60: … unable to get local issuer certificate`** — PHP neranda
+> SSL sertifikatų paketo. Apache naudojamo PHP `php.ini` nustatykite
+> `curl.cainfo = "H:\xamppV8\apache\bin\curl-ca-bundle.crt"` ir `openssl.cafile` tą patį kelią
+> (arba naujausią <https://curl.se/ca/cacert.pem>), tada perkraukite Apache.
+
 Demonstraciniai naudotojai (pasirenkami puslapio viršuje):
 
 | Naudotojas | Bearer žetonas | Siuntos |

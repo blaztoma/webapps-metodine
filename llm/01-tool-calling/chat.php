@@ -60,5 +60,6 @@ try {
     }
     json_out(['answer' => 'Per daug įrankių žingsnių — sustabdyta.', 'trace' => $trace, 'usage' => $usage], 500);
 } catch (Throwable $e) {
-    json_out(['error' => $e->getMessage(), 'trace' => $trace], 500);
+    error_log((string) $e);
+    json_out(['error' => describe_error($e), 'trace' => $trace], 500);
 }
