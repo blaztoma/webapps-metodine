@@ -10,6 +10,7 @@
   <header>
     <h1>2 · MCP <span style="font-weight:normal;opacity:.7">— ParcelShop</span></h1>
     <label><span id="lbl-user">Naudotojas</span> <select id="user"></select></label>
+    <button id="db" type="button" title="SQLite">DB</button>
     <button id="clear" type="button">Išvalyti</button>
     <button id="lang" type="button">EN</button>
   </header>
@@ -30,6 +31,15 @@
       <div id="trace"></div>
     </section>
   </main>
+  <dialog id="db-dialog">
+    <div class="db-head">
+      <h2 id="db-title">Duomenų bazė (tik skaitymui)</h2>
+      <span class="meta" id="db-meta"></span>
+      <button id="db-reload" type="button">Atnaujinti</button>
+      <button id="db-close" type="button">Uždaryti</button>
+    </div>
+    <div id="db-body"></div>
+  </dialog>
   <script src="../shared/chat.js"></script>
 </body>
 </html>

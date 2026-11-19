@@ -40,4 +40,20 @@ form button:disabled { opacity: .5; cursor: wait; }
 .step.final { border-color: var(--dark); background: var(--lav); }
 .step.err { border-color: var(--red-t); background: var(--red-bg); }
 .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+dialog#db-dialog { width: min(1100px, 94vw); max-height: 86vh; border: 0; border-radius: 12px; padding: 0; color: var(--text); }
+dialog#db-dialog::backdrop { background: rgba(42, 40, 57, .55); }
+.db-head { background: var(--dark); color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; }
+.db-head h2 { color: #fff; margin: 0; flex: 1; }
+.db-head .meta { font: 12.5px var(--mono); opacity: .75; }
+.db-head button { font: inherit; font-size: 14px; padding: 4px 10px; border-radius: 6px; border: 0; cursor: pointer; }
+#db-body { padding: 12px 16px 16px; }
+.db-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.db-tabs button { font: 13px var(--mono); border: 0; border-radius: 6px; padding: 5px 10px; background: var(--card); cursor: pointer; }
+.db-tabs button.on { background: var(--dark); color: #fff; }
+.db-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--line); border-radius: 8px; }
+table.db { border-collapse: collapse; width: 100%; font: 13px/1.35 var(--mono); }
+table.db th { position: sticky; top: 0; background: var(--card); text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.db td { padding: 5px 8px; border-bottom: 1px solid var(--card); vertical-align: top; }
+table.db tr.mine td { background: var(--green-bg); }
+table.db td.note { color: var(--red-t); max-width: 340px; }
 code { font-family: var(--mono); font-size: 13px; background: var(--card); padding: 1px 4px; border-radius: 4px; }

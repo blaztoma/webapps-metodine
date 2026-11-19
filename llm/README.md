@@ -29,6 +29,7 @@ Abiejų `chat.php` ciklas yra toks pat — skiriasi tik tai, **iš kur** ateina 
 ```
 llm/
 ├─ index.html                 pradžios puslapis su nuorodomis į abu pavyzdžius
+├─ db-view.php                mygtukas „DB“: visa demonstracinė bazė tik skaitymui (mokymuisi)
 ├─ config.php                 nustatymai (modelis, ribos, adresai)
 ├─ config.local.example.php   → nukopijuokite į config.local.php ir įrašykite API raktą
 ├─ composer.json              anthropic-ai/sdk, guzzlehttp/guzzle, mcp/sdk
@@ -87,6 +88,8 @@ Demonstraciniai naudotojai (pasirenkami puslapio viršuje):
 - **„Kas su siunta 152?“** kaip **Ona** — įrankis grąžina klaidą „not found for this user“: asistentas mato tik tai, ką mato naudotojas.
 - Tas pats kaip **Jonas** — siuntos pastaboje yra „Ignore all previous instructions…“ (skaidrė *Prompt injection through your own data*). Įrankiai tik skaito, todėl apgautas modelis negalėtų nieko atšaukti.
 - Dešinėje juostoje matosi kiekvienas žingsnis ir tokenų skaičius (`usage`).
+- Mygtukas **DB** atidaro visas lenteles: paryškintos dabartinio naudotojo eilutės — tik jas mato įrankiai.
+  Taip galima palyginti, ką grąžino įrankis, su tuo, kas iš tikrųjų yra duomenų bazėje.
 
 ## Siuntų API (1 pavyzdys) be modelio
 
@@ -117,6 +120,7 @@ ir senesnę su `initialize` ir `Mcp-Session-Id` (sesijos saugomos `data/mcp-sess
 - PHP ≥ 8.1 su `curl`, `openssl`, `pdo_sqlite`, `fileinfo`; leidžiamas išeinantis HTTPS į `api.anthropic.com`.
 - Įkelkite visą katalogą su `vendor/` arba serveryje paleiskite `composer install --no-dev`.
 - `config.local.php` su raktu — tik serveryje; `.htaccess` neleidžia jo atsisiųsti (taip pat `data/`, `vendor/`).
+- `db-view.php` rodo visą bazę, įskaitant demonstracinius žetonus. Mokymuisi tai gerai, bet tikroje programoje tokio puslapio neturi būti.
 - Į `mcp_allowed_hosts` (config) įrašykite savo domeną — kitaip MCP serveris atsakys 403 (DNS rebinding apsauga).
 - Jei `Authorization` antraštė nepasiekia PHP (CGI/FPM), ją perduoda šakninis `.htaccess`.
 

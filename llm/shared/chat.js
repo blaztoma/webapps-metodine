@@ -4,14 +4,19 @@
   const root = document.body;
   const endpoint = root.dataset.endpoint;          // chat.php of the example
   const USERS = { 'demo-token-ona': 'Ona', 'demo-token-jonas': 'Jonas' };
+  const USER_IDS = { 'demo-token-ona': 1, 'demo-token-jonas': 2 };   // only to highlight rows in the DB view
 
   const T = {
     lt: { user: 'Naudotojas', send: 'Siųsti', placeholder: 'Klauskite apie savo siuntas…', chat: 'Pokalbis',
           trace: 'Kas vyko serveryje', thinking: 'Galvoja…', tokens: 'tokenai', examples: 'Pavyzdžiai:',
-          clear: 'Išvalyti', empty: 'Užduokite klausimą — čia matysite kiekvieną modelio ir įrankių žingsnį.' },
+          clear: 'Išvalyti', empty: 'Užduokite klausimą — čia matysite kiekvieną modelio ir įrankių žingsnį.',
+          dbTitle: 'Duomenų bazė (tik skaitymui)', close: 'Uždaryti', reload: 'Atnaujinti',
+          dbHint: 'Paryškintos dabartinio naudotojo eilutės — tik jas mato įrankiai. Pastabą (note) rašo siuntėjas.' },
     en: { user: 'User', send: 'Send', placeholder: 'Ask about your parcels…', chat: 'Conversation',
           trace: 'What happened on the server', thinking: 'Thinking…', tokens: 'tokens', examples: 'Examples:',
-          clear: 'Clear', empty: 'Ask a question — every model and tool step will appear here.' },
+          clear: 'Clear', empty: 'Ask a question — every model and tool step will appear here.',
+          dbTitle: 'Database (read-only)', close: 'Close', reload: 'Reload',
+          dbHint: 'Highlighted rows belong to the current user — the tools can see only those. The note is written by the sender.' },
   };
   const EXAMPLES = {
     lt: ['Kur mano siunta 150?', 'Kurios mano siuntos dar keliauja?', 'Kas nutiko siuntai 154?', 'Kas su siunta 152?'],
@@ -125,6 +130,61 @@
     }
   }
 
+  // ---------------------------------------------------------------- DB view (learning aid)
+  let dbData = null;
+  let dbTab = 'packages';
+
+  async function openDb(reload) {
+    const dlg = $('#db-dialog');
+    if (!dlg.open) dlg.showModal();
+    if (!dbData || reload) {
+      $('#db-body').replaceChildren(el('p', 'hint', '…'));
+      try {
+        const res = await fetch(root.dataset.dbView || '../db-view.php', { cache: 'no-store' });
+        dbData = await res.json();
+        if (!res.ok || dbData.error) throw new Error(dbData.error || 'HTTP ' + res.status);
+      } catch (e) {
+        dbData = null;
+        $('#db-body').replaceChildren(el('p', 'msg error', String(e.message || e)));
+        return;
+      }
+    }
+    renderDb();
+  }
+
+  function renderDb() {
+    const t = T[lang];
+    $('#db-title').textContent = t.dbTitle;
+    $('#db-close').textContent = t.close;
+    $('#db-reload').textContent = t.reload;
+    $('#db-meta').textContent = `${dbData.database} · ${dbData.created}`;
+    const tabs = el('div', 'db-tabs');
+    for (const name of Object.keys(dbData.tables)) {
+      const b = el('button', name === dbTab ? 'on' : null, `${name} (${dbData.tables[name].rows.length})`);
+      b.type = 'button';
+      b.onclick = () => { dbTab = name; renderDb(); };
+      tabs.append(b);
+    }
+    const { columns, rows } = dbData.tables[dbTab];
+    // which column links a row to a user: users.id, packages.owner_id, package_events -> via its package
+    const uid = USER_IDS[token];
+    const ownPackages = new Set(dbData.tables.packages.rows.filter((r) => r[1] === uid).map((r) => r[0]));
+    const mine = (r) => dbTab === 'users' ? r[0] === uid : dbTab === 'packages' ? r[1] === uid : ownPackages.has(r[1]);
+
+    const table = el('table', 'db');
+    const head = el('tr');
+    for (const c of columns) head.append(el('th', null, c));
+    table.append(head);
+    for (const r of rows) {
+      const tr = el('tr', mine(r) ? 'mine' : null);
+      r.forEach((v, i) => tr.append(el('td', columns[i] === 'note' && v ? 'note' : null, v === null ? 'NULL' : String(v))));
+      table.append(tr);
+    }
+    const wrap = el('div', 'db-wrap');
+    wrap.append(table);
+    $('#db-body').replaceChildren(tabs, el('p', 'hint', t.dbHint), wrap);
+  }
+
   function reset() {
     history = [];
     $('#chat').replaceChildren();
@@ -136,8 +196,14 @@
   for (const [tok, name] of Object.entries(USERS)) {
     const o = el('option', null, name); o.value = tok; sel.append(o);
   }
-  sel.onchange = () => { token = sel.value; reset(); };
-  $('#lang').onclick = () => { lang = lang === 'lt' ? 'en' : 'lt'; localStorageSet('llm-lang', lang); applyLang(); };
+  sel.onchange = () => { token = sel.value; reset(); if (dbData && $('#db-dialog').open) renderDb(); };
+  $('#lang').onclick = () => {
+    lang = lang === 'lt' ? 'en' : 'lt'; localStorageSet('llm-lang', lang); applyLang();
+    if (dbData && $('#db-dialog').open) renderDb();
+  };
+  $('#db').onclick = () => openDb(true);
+  $('#db-reload').onclick = () => openDb(true);
+  $('#db-close').onclick = () => $('#db-dialog').close();
   $('#clear').onclick = reset;
   $('#form').onsubmit = (e) => {
     e.preventDefault();

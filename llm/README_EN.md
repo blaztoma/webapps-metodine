@@ -29,6 +29,7 @@ The loop in both `chat.php` files is the same — only **where** the tool defini
 ```
 llm/
 ├─ index.html                 start page with links to both examples
+├─ db-view.php                the "DB" button: the whole demo database, read-only (learning aid)
 ├─ config.php                 settings (model, limits, URLs)
 ├─ config.local.example.php   → copy to config.local.php and put your API key there
 ├─ composer.json              anthropic-ai/sdk, guzzlehttp/guzzle, mcp/sdk
@@ -90,6 +91,8 @@ answers in the language of the question.
 - **"What about package 152?"** as **Ona** — the tool returns "not found for this user": the assistant sees only what the user sees.
 - The same as **Jonas** — the package note contains "Ignore all previous instructions…" (slide *Prompt injection through your own data*). The tools are read-only, so a fooled model could not cancel anything.
 - The right-hand panel shows every step and the token counts (`usage`).
+- The **DB** button opens all tables: the current user's rows are highlighted — the tools can see only those.
+  Compare what a tool returned with what is really in the database.
 
 ## The parcel API (example 1) without the model
 
@@ -121,6 +124,7 @@ SDK client) and the older one with `initialize` and `Mcp-Session-Id` (sessions a
 - Upload the folder and run `composer install --no-dev` on the server (or upload `vendor/` as well).
 - Use an API key ("Somewhere else" in the Claude Console) and keep `config.local.php` on the server only;
   `.htaccess` blocks it from download (and also `data/` and `vendor/`).
+- `db-view.php` shows the whole database, including the demo tokens. Fine for learning; a real application must not have such a page.
 - Add your domain to `mcp_allowed_hosts` (config) — otherwise the MCP server answers 403 (DNS rebinding protection).
 - If the `Authorization` header does not reach PHP (CGI/FPM), the root `.htaccess` passes it on.
 
