@@ -2,7 +2,7 @@
 
 [Lietuviškai](README.md) · **English**
 
-Two small PHP projects that illustrate the slides. Both use the same **ParcelShop** parcel
+Two small PHP projects that illustrate the [slides](slides/LLM_integration_2026.pptx). Both use the same **ParcelShop** parcel
 database (SQLite) and the same chat page, which shows every step the server takes.
 
 | | Project | What it shows | Slides |
@@ -53,6 +53,7 @@ OAuth 2.1, as the MCP specification requires.
 ```
 llm/
 ├─ index.html                 start page with links to both examples
+├─ slides/                    lecture slides (LLM_integration_2026.pptx)
 ├─ db-view.php                the "DB" button: the whole demo database, read-only (learning aid)
 ├─ config.php                 settings (model, limits, URLs)
 ├─ config.local.example.php   → copy to config.local.php and put your API key there

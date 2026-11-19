@@ -2,7 +2,7 @@
 
 **Lietuviškai** · [English](README_EN.md)
 
-Du nedideli PHP projektai skaidrėms iliustruoti. Abu naudoja tą pačią **ParcelShop** siuntų
+Du nedideli PHP projektai [skaidrėms](slides/LLM_integration_2026.pptx) iliustruoti. Abu naudoja tą pačią **ParcelShop** siuntų
 duomenų bazę (SQLite) ir tą patį pokalbio puslapį, kuriame matosi kiekvienas serverio žingsnis.
 
 | | Projektas | Ką rodo | Skaidrės |
@@ -53,6 +53,7 @@ autorizuoja per OAuth 2.1, kaip nurodyta MCP specifikacijoje.
 ```
 llm/
 ├─ index.html                 pradžios puslapis su nuorodomis į abu pavyzdžius
+├─ slides/                    paskaitos skaidrės (LLM_integration_2026.pptx, anglų k.)
 ├─ db-view.php                mygtukas „DB“: visa demonstracinė bazė tik skaitymui (mokymuisi)
 ├─ config.php                 nustatymai (modelis, ribos, adresai)
 ├─ config.local.example.php   → nukopijuokite į config.local.php ir įrašykite API raktą

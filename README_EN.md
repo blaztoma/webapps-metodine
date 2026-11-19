@@ -6,7 +6,7 @@ Teaching examples for the module *Web Application Design* (T120B165, „Saityno 
 
 | Folder | Contents | Slides |
 |---|---|---|
-| [`llm/`](llm/README_EN.md) | Integrating LLMs into web applications: **tool calling** over a JSON-RPC API and an **MCP server** (PHP, SQLite, official Anthropic and MCP PHP SDKs) | `LLM_integration_2026.pptx` / `LLM_integravimas_2026.pptx` |
+| [`llm/`](llm/README_EN.md) | Integrating LLMs into web applications: **tool calling** over a JSON-RPC API and an **MCP server** (PHP, SQLite, official Anthropic and MCP PHP SDKs) | [`llm/slides/LLM_integration_2026.pptx`](llm/slides/LLM_integration_2026.pptx) |
 
 ## Quick start
 

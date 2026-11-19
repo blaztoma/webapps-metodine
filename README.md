@@ -6,7 +6,7 @@ Modulio „Saityno taikomųjų programų projektavimas“ (T120B165) / *Web Appl
 
 | Katalogas | Turinys | Skaidrės |
 |---|---|---|
-| [`llm/`](llm/) | LLM integravimas į saityno programas: **tool calling** su JSON-RPC API ir **MCP serveris** (PHP, SQLite, oficialūs Anthropic ir MCP PHP SDK) | `LLM_integravimas_2026.pptx` / `LLM_integration_2026.pptx` |
+| [`llm/`](llm/) | LLM integravimas į saityno programas: **tool calling** su JSON-RPC API ir **MCP serveris** (PHP, SQLite, oficialūs Anthropic ir MCP PHP SDK) | [`llm/slides/LLM_integration_2026.pptx`](llm/slides/LLM_integration_2026.pptx) (anglų k.) |
 
 ## Greitas paleidimas
 
