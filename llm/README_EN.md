@@ -8,21 +8,45 @@ database (SQLite) and the same chat page, which shows every step the server take
 | | Project | What it shows | Slides |
 |---|---|---|---|
 | 1 | `01-tool-calling/` | The model asks for a tool (`tool_use`); `chat.php` runs it by calling **our parcel API over JSON-RPC 2.0** with the user's token and returns a `tool_result`. | *Tool calling: the model asks, your code acts*, *Tool calling in code* |
-| 2 | `02-mcp/` | The same tools in an **MCP server** (official MCP PHP SDK, Streamable HTTP). `chat.php` is an MCP client: `tools/list` → the model, `tool_use` → `tools/call`. | *MCP: one protocol for tools*, *Exposing your API as an MCP server* |
+| 2 | `02-mcp/` | The same tools in an **MCP server** (official MCP PHP SDK, Streamable HTTP). `chat.php` is an MCP client: `tools/list` → the model, `tool_use` → `tools/call`. | *MCP: one protocol for tools*, *Exposing your API as an MCP server*, *Where the MCP server sits* |
 
 ```
 1)  browser ──JWT──▶ chat.php ──messages + tools──▶ model (Claude)
                      chat.php ◀──tool_use──────────
-                     chat.php ──JSON-RPC──▶ api/rpc.php ──▶ SQLite
+                     chat.php ──JSON-RPC──▶ api/rpc.php ──▶ shared/db.php ──▶ SQLite
                      chat.php ──tool_result────────▶ model ──▶ answer
 
 2)  browser ──JWT──▶ chat.php (MCP client) ──initialize, tools/list──▶ server.php (MCP server)
                      chat.php ──messages + tools──▶ model
-                     chat.php ──tools/call (user's token)──▶ server.php ──▶ SQLite
+                     chat.php ──tools/call (user's token)──▶ server.php ──▶ shared/db.php ──▶ SQLite
 ```
 
 The loop in both `chat.php` files is the same — only **where** the tool definitions come from and
 **how** a tool is executed differ. That is the answer to "are tool calling and MCP the same thing?".
+
+## Where is the API in the MCP example?
+
+The MCP server does not call the JSON-RPC API over HTTP. `api/rpc.php` and `02-mcp/server.php` are **two
+interfaces over the same layer**, `shared/db.php`. Its functions `packages_of()` and `package_of()` always filter
+by owner, so the rules and permissions are written in one place:
+
+```
+api/rpc.php        (JSON-RPC) ─┐
+                               ├──▶ shared/db.php (queries, permissions) ──▶ SQLite
+02-mcp/server.php  (MCP)      ─┘
+```
+
+An MCP server is an interface layer, like a REST controller, so business logic does not live in it. In practice
+there are three options (slide *Where the MCP server sits*):
+
+| | Option | When | Watch out for |
+|---|---|---|---|
+| 1 | **Another interface in your app**: MCP tools sit next to the REST controllers and call the same services. *Our example.* | Your own application; the usual choice. | Logic and permission checks belong in the service layer, not in the tools. |
+| 2 | **Adapter over an existing API**: the MCP server calls an existing REST API over HTTP. | The API already exists, or another team builds the MCP server. Most SaaS products do this. | **No token passthrough.** The MCP server accepts only tokens issued for it (OAuth *audience*) and never forwards them. For the API call it gets its own token on the user's behalf, e.g. with *token exchange* (RFC 8693). |
+| 3 | **Straight to the database**, e.g. a generic PostgreSQL MCP server. | Internal developer tools, analytics, prototypes. | There are no business rules, so it is not for end users. |
+
+The `demo-token-…` tokens are for learning only. A remote MCP server in production authorizes with
+OAuth 2.1, as the MCP specification requires.
 
 ## Structure
 
@@ -37,7 +61,7 @@ llm/
 │  ├─ schema.sql              tables and sample data (dates are relative to "today")
 │  └─ init.php                php data/init.php — re-creates the database
 ├─ shared/
-│  ├─ db.php                  PDO + queries, always scoped to the owner
+│  ├─ db.php                  PDO + queries, always scoped to the owner (shared by rpc.php and server.php)
 │  ├─ llm.php                 Anthropic client, system prompt, history, JSON responses
 │  └─ chat.js, chat.css       chat page and the "what happened on the server" panel
 ├─ 01-tool-calling/

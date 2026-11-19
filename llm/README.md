@@ -8,21 +8,45 @@ duomenų bazę (SQLite) ir tą patį pokalbio puslapį, kuriame matosi kiekviena
 | | Projektas | Ką rodo | Skaidrės |
 |---|---|---|---|
 | 1 | `01-tool-calling/` | Modelis prašo įrankio (`tool_use`), `chat.php` jį vykdo kviesdamas **mūsų siuntų API per JSON-RPC 2.0** su naudotojo žetonu ir grąžina `tool_result`. | *Tool calling: the model asks, your code acts*, *Tool calling in code* |
-| 2 | `02-mcp/` | Tie patys įrankiai **MCP serveryje** (oficialus MCP PHP SDK, Streamable HTTP). `chat.php` yra MCP klientas: `tools/list` → modeliui, `tool_use` → `tools/call`. | *MCP: one protocol for tools*, *Exposing your API as an MCP server* |
+| 2 | `02-mcp/` | Tie patys įrankiai **MCP serveryje** (oficialus MCP PHP SDK, Streamable HTTP). `chat.php` yra MCP klientas: `tools/list` → modeliui, `tool_use` → `tools/call`. | *MCP: one protocol for tools*, *Exposing your API as an MCP server*, *Where the MCP server sits* |
 
 ```
 1)  naršyklė ──JWT──▶ chat.php ──messages + tools──▶ modelis (Claude)
                        chat.php ◀──tool_use──────────
-                       chat.php ──JSON-RPC──▶ api/rpc.php ──▶ SQLite
+                       chat.php ──JSON-RPC──▶ api/rpc.php ──▶ shared/db.php ──▶ SQLite
                        chat.php ──tool_result────────▶ modelis ──▶ atsakymas
 
 2)  naršyklė ──JWT──▶ chat.php (MCP klientas) ──initialize, tools/list──▶ server.php (MCP serveris)
                        chat.php ──messages + tools──▶ modelis
-                       chat.php ──tools/call (naudotojo žetonas)──▶ server.php ──▶ SQLite
+                       chat.php ──tools/call (naudotojo žetonas)──▶ server.php ──▶ shared/db.php ──▶ SQLite
 ```
 
 Abiejų `chat.php` ciklas yra toks pat — skiriasi tik tai, **iš kur** ateina įrankių aprašai ir
 **kaip** įrankis įvykdomas. Tai ir yra atsakymas į klausimą „ar tool calling ir MCP yra tas pats?“.
+
+## Kur yra API MCP pavyzdyje?
+
+MCP serveris nekviečia JSON-RPC API per HTTP. `api/rpc.php` ir `02-mcp/server.php` yra **dvi sąsajos
+virš to paties sluoksnio** `shared/db.php`. Jo funkcijos `packages_of()` ir `package_of()` visada filtruoja
+pagal savininką, todėl taisyklės ir teisės aprašytos vienoje vietoje:
+
+```
+api/rpc.php        (JSON-RPC) ─┐
+                               ├──▶ shared/db.php (užklausos, teisės) ──▶ SQLite
+02-mcp/server.php  (MCP)      ─┘
+```
+
+MCP serveris yra sąsajos sluoksnis, kaip REST valdiklis, todėl verslo logika jame negyvena. Praktikoje
+sutinkami trys variantai (skaidrė *Where the MCP server sits*):
+
+| | Variantas | Kada | Į ką atkreipti dėmesį |
+|---|---|---|---|
+| 1 | **Dar viena programos sąsaja**: MCP įrankiai šalia REST valdiklių kviečia tas pačias paslaugas. *Mūsų pavyzdys.* | Jūsų pačių programa; įprastas pasirinkimas. | Logika ir teisių tikrinimas — paslaugų sluoksnyje, ne įrankiuose. |
+| 2 | **Adapteris virš esamo API**: MCP serveris per HTTP kviečia jau esamą REST API. | API jau yra, arba MCP serverį kuria kita komanda. Taip daro dauguma SaaS produktų. | **Jokio *token passthrough*.** MCP serveris priima tik jam išduotus žetonus (OAuth *audience*) ir neperduoda jų toliau. API kvietimui jis gauna savo žetoną naudotojo vardu, pvz., per *token exchange* (RFC 8693). |
+| 3 | **Tiesiai į duomenų bazę**, pvz., bendras PostgreSQL MCP serveris. | Vidiniai kūrėjų įrankiai, analitika, prototipai. | Nėra verslo taisyklių, todėl tinka ne galutiniams naudotojams. |
+
+Demonstraciniai `demo-token-…` žetonai skirti tik mokymuisi. Nutolęs MCP serveris produkcijoje
+autorizuoja per OAuth 2.1, kaip nurodyta MCP specifikacijoje.
 
 ## Struktūra
 
@@ -37,7 +61,7 @@ llm/
 │  ├─ schema.sql              lentelės ir pavyzdiniai duomenys (datos — santykinės „šiandien“ atžvilgiu)
 │  └─ init.php                php data/init.php — sukuria duomenų bazę iš naujo
 ├─ shared/
-│  ├─ db.php                  PDO + užklausos, visada apribotos savininku
+│  ├─ db.php                  PDO + užklausos, visada apribotos savininku (bendras rpc.php ir server.php)
 │  ├─ llm.php                 Anthropic klientas, sistemos raginimas, istorija, JSON atsakymai
 │  └─ chat.js, chat.css       pokalbio puslapis ir „kas vyko serveryje“ juosta
 ├─ 01-tool-calling/
