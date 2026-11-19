@@ -1,0 +1,2 @@
+# The SQLite file, MCP sessions and scripts here must never be served directly.
+Require all denied

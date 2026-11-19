@@ -1,0 +1,4 @@
+/vendor/
+/config.local.php
+/data/parcels.sqlite
+/data/mcp-sessions/

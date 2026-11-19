@@ -1,0 +1,4 @@
+# chat.js and chat.css are public; the PHP helpers are only included, never called directly.
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>

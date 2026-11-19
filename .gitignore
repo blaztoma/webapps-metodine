@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------- secrets (never commit)
+# API keys live only on the server: copy llm/config.local.example.php -> llm/config.local.php
+config.local.php
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------------------------------------------------------------- dependencies
+# Restore with: php composer.phar install
+vendor/
+composer.phar
+
+# ---------------------------------------------------------------- runtime data
+# The demo database is re-created from llm/data/schema.sql (php llm/data/init.php)
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+llm/data/mcp-sessions/
+*.log
+
+# ---------------------------------------------------------------- IDE and OS
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+Desktop.ini

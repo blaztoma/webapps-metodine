@@ -1,0 +1,15 @@
+# Pass the Authorization header to PHP (needed under CGI/FPM on many hosts; harmless under mod_php).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# vendor/ (installed by Composer, not in git) and data/ (SQLite, MCP sessions) are never served.
+RedirectMatch 403 /(vendor|data)(/|$)
+
+# Secrets and build files are never served.
+<FilesMatch "^(config(\.local)?(\.example)?\.php|composer\.(json|lock)|README\.md|\.gitignore)$">
+    Require all denied
+</FilesMatch>
