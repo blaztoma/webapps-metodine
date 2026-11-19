@@ -4,6 +4,32 @@
 
 declare(strict_types=1);
 
+// Every endpoint here answers JSON. A PHP warning printed as HTML would break it
+// ("Unexpected token '<'"), so errors go to the PHP error log, and the client gets JSON.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+set_exception_handler(function (Throwable $e): void {
+    error_log((string) $e);
+    send_json_error(get_class($e) . ': ' . $e->getMessage());
+});
+
+register_shutdown_function(function (): void {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        send_json_error("PHP fatal error: {$err['message']} ({$err['file']}:{$err['line']})");
+    }
+});
+
+function send_json_error(string $message): void
+{
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
 const DB_FILE = __DIR__ . '/../data/parcels.sqlite';
 
 function db(): PDO

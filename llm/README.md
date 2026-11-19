@@ -63,6 +63,11 @@ llm/
 3. **Duomenų bazė** susikuria pati pirmą kartą; atstatyti: `H:\xamppV8\php\php.exe data\init.php`.
 4. Paleiskite Apache ir atidarykite <http://localhost/metodine/llm/>.
 
+> **„could not find driver“ / `Unexpected token '<'`** — Apache naudojamame PHP neįjungtas SQLite.
+> Kurį PHP naudoja Apache, rodo `PHPINIDir` faile `apache\conf\extra\httpd-xampp.conf` (pvz., `H:\xamppV8\php84`).
+> To PHP `php.ini` faile atkomentuokite `extension=pdo_sqlite` ir `extension=sqlite3`, tada perkraukite Apache.
+> Klaidų detalės — `apache\logs\error.log`.
+
 Demonstraciniai naudotojai (pasirenkami puslapio viršuje):
 
 | Naudotojas | Bearer žetonas | Siuntos |

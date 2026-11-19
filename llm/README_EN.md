@@ -63,6 +63,11 @@ llm/
 3. **Database** is created automatically on first use; to reset it: `H:\xamppV8\php\php.exe data\init.php`.
 4. Start Apache and open <http://localhost/metodine/llm/>.
 
+> **"could not find driver" / `Unexpected token '<'`** — SQLite is not enabled in the PHP that Apache uses.
+> `PHPINIDir` in `apache\conf\extra\httpd-xampp.conf` tells which PHP that is (e.g. `H:\xamppV8\php84`).
+> Uncomment `extension=pdo_sqlite` and `extension=sqlite3` in that PHP's `php.ini`, then restart Apache.
+> Error details are in `apache\logs\error.log`.
+
 Demo users (chosen at the top of the page):
 
 | User | Bearer token | Packages |

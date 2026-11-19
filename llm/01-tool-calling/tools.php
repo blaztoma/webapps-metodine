@@ -57,7 +57,8 @@ function run_tool(string $name, array $input, string $userToken, array &$trace):
     $response = json_rpc($method, $input, $userToken, $trace);
     if (isset($response['error'])) {
         // An error the model can act on (e.g. "Package 999 not found for this user").
-        return [$response['error']['message'], true];
+        $e = $response['error'];
+        return [is_array($e) ? (string) ($e['message'] ?? 'error') : (string) $e, true];
     }
     return [json_encode($response['result'] ?? null, JSON_UNESCAPED_UNICODE), false];
 }
