@@ -127,18 +127,38 @@ Kompiuteryje **nereikia nei PHP, nei Composer, nei Apache** — tik paleisto Doc
 ```bash
 git clone https://github.com/blaztoma/webapps-metodine.git
 cd webapps-metodine/llm                  # compose.yaml yra čia
+copy .env.example .env                   # neprivaloma: API raktas (notepad .env)
 docker compose up --build -d             # → http://localhost:8080/
 docker compose ps                        # STATUS: Up … (healthy)
 docker compose run --rm --build smoke    # dūmų testas savame konteineryje
 docker compose down                      # sustabdyti ir pašalinti
 ```
 
-> **„no configuration file provided“** — esate ne `llm` kataloge. **„failed to connect to the docker API“** — nepaleistas
-> Docker Desktop (palaukite, kol bus *Engine running*). Repozitoriją klonavote anksčiau? Pirmiausia `git pull`.
+**API raktas.** `config.local.php` Docker atvaizde nenaudojamas — raktą Compose paima iš `.env` failo šalia
+`compose.yaml`. Nukopijuokite `.env.example` į `.env`, atidarykite su Notepad ir įrašykite raktą po `=`:
 
-Atidarykite <http://localhost:8080/>. API raktą Compose paima iš aplinkos kintamojo `ANTHROPIC_API_KEY` arba iš
-`.env` failo šalia `compose.yaml` (`ANTHROPIC_API_KEY=sk-ant-…`; `.env` į git nepatenka). Be rakto veikia puslapiai,
-API ir MCP serveris — tik modelio kvietimai praneša, kad rakto nėra.
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Viena eilutė, be kabučių ir be tarpų. `.env` į git ir į atvaizdą nepatenka. Pakeitę raktą paleiskite
+`docker compose up -d`, o patikrinkite (rakto neparodo):
+
+```bash
+docker compose exec web sh -c 'test -n "$ANTHROPIC_API_KEY" && echo "raktas nustatytas" || echo "rakto nera"'
+```
+
+Be rakto veikia puslapiai, API ir MCP serveris — tik modelio kvietimai praneša, kad rakto nėra.
+
+| Klaida | Priežastis |
+|---|---|
+| `no configuration file provided: not found` | esate ne `llm` kataloge |
+| `failed to connect to the docker API` | nepaleistas Docker Desktop — palaukite, kol bus *Engine running* |
+| `unexpected character … in variable name` arba `key cannot contain a space` | `.env` faile ne tik `ANTHROPIC_API_KEY=…` — pvz., įklijuota visa komanda ar kabutės |
+| `composer` / `php` *is not recognized* | Docker'iui jų nereikia: dūmų testą leiskite `docker compose run --rm smoke` |
+| nėra `compose.yaml` | repozitoriją klonavote anksčiau — `git pull` |
+
+Atidarykite <http://localhost:8080/>.
 
 - `Dockerfile` turi tris etapus: `composer:2` įdiegia bibliotekas pagal `composer.lock`; `test` prideda `tests/smoke.php`
   (jį naudoja `smoke` paslauga); galutiniame `php:8.4-apache` atvaizde lieka tik tai, ko reikia veikimui. Raktas ir `config.local.php` į atvaizdą nepatenka (`.dockerignore`).

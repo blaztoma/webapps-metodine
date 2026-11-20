@@ -4,9 +4,10 @@
 #   docker compose run --rm --build smoke   ->  the smoke test, run from its own container
 #   docker compose down                     ->  stop and remove (the demo data starts fresh next time)
 #
-# The API key comes from your shell, or from a .env file next to this file (.env is in .gitignore):
-#   ANTHROPIC_API_KEY=sk-ant-...
+# The API key comes from a .env file next to this file — copy .env.example to .env and fill it in
+# (one line: ANTHROPIC_API_KEY=sk-ant-... — no quotes, no spaces) — or from your shell's environment.
 # Without a key the pages, the API and the MCP server work; only the model calls report the missing key.
+# After changing .env: docker compose up -d (Compose recreates the container with the new value).
 
 services:
   web:

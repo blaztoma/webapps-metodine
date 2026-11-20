@@ -130,18 +130,38 @@ Your computer needs **no PHP, no Composer and no Apache** — only a running Doc
 ```bash
 git clone https://github.com/blaztoma/webapps-metodine.git
 cd webapps-metodine/llm                  # compose.yaml is here
+copy .env.example .env                   # optional: the API key (notepad .env; cp on macOS/Linux)
 docker compose up --build -d             # → http://localhost:8080/
 docker compose ps                        # STATUS: Up … (healthy)
 docker compose run --rm --build smoke    # the smoke test, in its own container
 docker compose down                      # stop and remove
 ```
 
-> **"no configuration file provided"** — you are not in the `llm` folder. **"failed to connect to the docker API"** —
-> Docker Desktop is not running (wait for *Engine running*). Cloned the repository earlier? Run `git pull` first.
+**The API key.** `config.local.php` is not used in the Docker image — Compose takes the key from a `.env` file next to
+`compose.yaml`. Copy `.env.example` to `.env`, open it in a text editor and put the key after the `=`:
 
-Open <http://localhost:8080/>. Compose takes the API key from the `ANTHROPIC_API_KEY` environment variable or from a
-`.env` file next to `compose.yaml` (`ANTHROPIC_API_KEY=sk-ant-…`; `.env` is never committed). Without a key the pages,
-the API and the MCP server work; only the model calls report that the key is missing.
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+One line, no quotes, no spaces. `.env` never gets into git or into the image. After changing it run
+`docker compose up -d`, and check it (without printing the key):
+
+```bash
+docker compose exec web sh -c 'test -n "$ANTHROPIC_API_KEY" && echo "key is set" || echo "no key"'
+```
+
+Without a key the pages, the API and the MCP server work; only the model calls report that the key is missing.
+
+| Error | Cause |
+|---|---|
+| `no configuration file provided: not found` | you are not in the `llm` folder |
+| `failed to connect to the docker API` | Docker Desktop is not running — wait for *Engine running* |
+| `unexpected character … in variable name` or `key cannot contain a space` | `.env` holds more than `ANTHROPIC_API_KEY=…` — e.g. a pasted command or quotes |
+| `composer` / `php` *is not recognized* | Docker does not need them: run the smoke test with `docker compose run --rm smoke` |
+| no `compose.yaml` | you cloned the repository earlier — `git pull` |
+
+Open <http://localhost:8080/>.
 
 - The `Dockerfile` has three stages: `composer:2` installs the libraries from `composer.lock`; `test` adds
   `tests/smoke.php` (used by the `smoke` service); the final `php:8.4-apache` image keeps only what is needed to run. The key and `config.local.php` never get into the image (`.dockerignore`).
