@@ -1,10 +1,12 @@
-# Both LLM examples in Docker:   docker compose up --build   ->  http://localhost:8080/
+# Both LLM examples in Docker — nothing else (PHP, Composer, Apache) is needed on your computer.
+#
+#   docker compose up --build -d            ->  http://localhost:8080/
+#   docker compose run --rm --build smoke   ->  the smoke test, run from its own container
+#   docker compose down                     ->  stop and remove (the demo data starts fresh next time)
 #
 # The API key comes from your shell, or from a .env file next to this file (.env is in .gitignore):
 #   ANTHROPIC_API_KEY=sk-ant-...
 # Without a key the pages, the API and the MCP server work; only the model calls report the missing key.
-#
-# The demo database lives inside the container: `docker compose down` and `up` start with fresh data.
 
 services:
   web:
@@ -12,3 +14,15 @@ services:
     ports: ["8080:80"]
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # "web" is the name the smoke container uses; the MCP server checks the Host header
+      MCP_ALLOWED_HOSTS: localhost,127.0.0.1,web
+
+  smoke:
+    build:
+      context: .
+      target: test
+    profiles: [test]          # not started by `up`, only by `docker compose run smoke`
+    depends_on:
+      web:
+        condition: service_healthy
+    # default arguments: http://web --apache  (CI adds --chat-without-key: it has no API key)

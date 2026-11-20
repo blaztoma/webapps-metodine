@@ -77,8 +77,8 @@ function rpc(string $method, array $params, ?string $token): array
 
 function short(string $s): string
 {
-    $s = preg_replace('/\s+/', ' ', $s);
-    return mb_strlen($s) > 160 ? mb_substr($s, 0, 160) . '…' : $s;
+    // preg with /u instead of mb_*: the smoke container (composer image) has no mbstring
+    return preg_replace(['/\s+/u', '/^(.{160}).+$/us'], [' ', '$1…'], $s) ?? $s;
 }
 
 echo "Smoke test of {$base}\n\n";

@@ -56,7 +56,7 @@ llm/
 ├─ slides/                    lecture slides (LLM_integration_2026.pptx)
 ├─ db-view.php                the "DB" button: the whole demo database, read-only (learning aid)
 ├─ healthz.php                health check: libraries + DB → 200 or 503
-├─ Dockerfile, compose.yaml   running it with Docker (docker compose up --build)
+├─ Dockerfile, compose.yaml   run and smoke-test it with Docker — nothing but Docker needed
 ├─ tests/smoke.php            smoke test without an API key; CI runs it too (../.github/workflows/ci.yml)
 ├─ config.php                 settings (model, limits, URLs)
 ├─ config.local.example.php   → copy to config.local.php and put your API key there
@@ -125,18 +125,26 @@ answers in the language of the question.
 ## Running it with Docker
 
 Instead of XAMPP you can use [Docker](https://www.docker.com/): the same Apache + PHP + SQLite in one container.
+Your computer needs **no PHP, no Composer and no Apache** — only a running Docker Desktop.
 
 ```bash
-cd webapps-metodine/llm
-docker compose up --build
+git clone https://github.com/blaztoma/webapps-metodine.git
+cd webapps-metodine/llm                  # compose.yaml is here
+docker compose up --build -d             # → http://localhost:8080/
+docker compose ps                        # STATUS: Up … (healthy)
+docker compose run --rm --build smoke    # the smoke test, in its own container
+docker compose down                      # stop and remove
 ```
+
+> **"no configuration file provided"** — you are not in the `llm` folder. **"failed to connect to the docker API"** —
+> Docker Desktop is not running (wait for *Engine running*). Cloned the repository earlier? Run `git pull` first.
 
 Open <http://localhost:8080/>. Compose takes the API key from the `ANTHROPIC_API_KEY` environment variable or from a
 `.env` file next to `compose.yaml` (`ANTHROPIC_API_KEY=sk-ant-…`; `.env` is never committed). Without a key the pages,
 the API and the MCP server work; only the model calls report that the key is missing.
 
-- The `Dockerfile` has two stages: `composer:2` installs the libraries from `composer.lock`, and the final
-  `php:8.4-apache` image keeps only what is needed to run. The key and `config.local.php` never get into the image (`.dockerignore`).
+- The `Dockerfile` has three stages: `composer:2` installs the libraries from `composer.lock`; `test` adds
+  `tests/smoke.php` (used by the `smoke` service); the final `php:8.4-apache` image keeps only what is needed to run. The key and `config.local.php` never get into the image (`.dockerignore`).
 - `healthz.php` checks the libraries and the database and answers 200 or 503. Docker's `HEALTHCHECK` uses it
   (`docker ps` shows *healthy*); it also works as a platform health check or an uptime monitor.
 - The database lives inside the container: after `docker compose down` and `up` you have fresh demo data.
@@ -152,7 +160,7 @@ Every push to `main` and every pull request starts a [GitHub Actions workflow](.
 | Job | What it does |
 |---|---|
 | **PHP 8.1 and 8.4** | `composer validate` and `install`, a syntax check of every `.php` file (`php -l`), the database, PHP's built-in server and the smoke test |
-| **Docker** | builds the image (tagged with the commit SHA), starts a container, waits until `healthz.php` answers 200, and runs the same smoke test through Apache |
+| **Docker Compose** | the same commands as above: `docker compose up --build -d --wait` (waits for *healthy*) and `docker compose run smoke` — the smoke test through Apache |
 
 The smoke test [`tests/smoke.php`](tests/smoke.php) needs no API key and calls no model, so it costs nothing. It checks
 that the app runs and keeps its rules: Ona sees her package 150 but not Jonas's 152; no token → 401; the JSON-RPC
@@ -160,11 +168,15 @@ error codes; MCP `tools/list` and `tools/call`; that `.htaccess` hides `config.p
 `chat.php` reaches the MCP server and reports the missing key clearly.
 
 ```bash
-php tests/smoke.php http://localhost/metodine/llm --apache       # XAMPP
-php tests/smoke.php http://localhost:8080 --apache                # Docker
+docker compose run --rm --build smoke                            # Docker: nothing else needed
+php tests/smoke.php http://localhost/metodine/llm --apache       # XAMPP: needs PHP with curl and composer install
 ```
 
-Use `--chat-without-key` only for a server without a key (as CI does): with a key, `chat.php` would call the paid model.
+If `php` or `composer` is not on your PATH, give the full path, e.g.
+`C:\xampp\php\php.exe C:\xampp\php\composer.phar install`.
+
+Use `--chat-without-key` only for a server without a key (as CI does): with a key, `chat.php` would call the paid model —
+`docker compose run --rm smoke http://web --apache --chat-without-key`.
 
 > **Try it:** in `shared/db.php`, remove `AND owner_id = ?` from `package_of()` (and `$userId` from `execute()`)
 > and open a pull request. CI should turn red: Ona would start seeing Jonas's package 152.

@@ -6,8 +6,7 @@ vendor/
 data/*.sqlite*
 data/mcp-sessions/
 
-# Not needed to run the app
-tests/
+# Not needed in any image (tests/ is: the "test" stage copies it; the runtime stage deletes it)
 slides/
 *.md
 Dockerfile

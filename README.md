@@ -19,8 +19,8 @@ php composer.phar install          # Composer: https://getcomposer.org/download/
 cp config.local.example.php config.local.php   # ir įrašykite savo API raktą
 ```
 
-Tada atidarykite `llm/` per Apache (XAMPP) arba hostingą. Arba su Docker: `docker compose up --build` kataloge `llm/`
-ir <http://localhost:8080/>. Išsamiau — [llm/README.md](llm/README.md).
+Tada atidarykite `llm/` per Apache (XAMPP) arba hostingą. Arba — be PHP ir Composer, tik su Docker:
+`docker compose up --build -d` kataloge `llm/` ir <http://localhost:8080/>. Išsamiau — [llm/README.md](llm/README.md).
 
 Kiekvienas push ir pull request automatiškai patikrinamas [GitHub Actions](.github/workflows/ci.yml) darbu: PHP 8.1 ir 8.4,
 Docker atvaizdas ir dūmų testas (be API rakto).

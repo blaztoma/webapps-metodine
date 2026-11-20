@@ -56,7 +56,7 @@ llm/
 ├─ slides/                    paskaitos skaidrės (LLM_integration_2026.pptx, anglų k.)
 ├─ db-view.php                mygtukas „DB“: visa demonstracinė bazė tik skaitymui (mokymuisi)
 ├─ healthz.php                sveikatos patikra: bibliotekos + DB → 200 arba 503
-├─ Dockerfile, compose.yaml   paleidimas su Docker (docker compose up --build)
+├─ Dockerfile, compose.yaml   paleidimas ir dūmų testas su Docker — kompiuteryje reikia tik Docker
 ├─ tests/smoke.php            dūmų testas be API rakto; jį leidžia ir CI (../.github/workflows/ci.yml)
 ├─ config.php                 nustatymai (modelis, ribos, adresai)
 ├─ config.local.example.php   → nukopijuokite į config.local.php ir įrašykite API raktą
@@ -122,18 +122,26 @@ Demonstraciniai naudotojai (pasirenkami puslapio viršuje):
 ## Paleidimas su Docker
 
 Vietoje XAMPP galima naudoti [Docker](https://www.docker.com/): tas pats Apache + PHP + SQLite viename konteineryje.
+Kompiuteryje **nereikia nei PHP, nei Composer, nei Apache** — tik paleisto Docker Desktop.
 
 ```bash
-cd webapps-metodine/llm
-docker compose up --build
+git clone https://github.com/blaztoma/webapps-metodine.git
+cd webapps-metodine/llm                  # compose.yaml yra čia
+docker compose up --build -d             # → http://localhost:8080/
+docker compose ps                        # STATUS: Up … (healthy)
+docker compose run --rm --build smoke    # dūmų testas savame konteineryje
+docker compose down                      # sustabdyti ir pašalinti
 ```
+
+> **„no configuration file provided“** — esate ne `llm` kataloge. **„failed to connect to the docker API“** — nepaleistas
+> Docker Desktop (palaukite, kol bus *Engine running*). Repozitoriją klonavote anksčiau? Pirmiausia `git pull`.
 
 Atidarykite <http://localhost:8080/>. API raktą Compose paima iš aplinkos kintamojo `ANTHROPIC_API_KEY` arba iš
 `.env` failo šalia `compose.yaml` (`ANTHROPIC_API_KEY=sk-ant-…`; `.env` į git nepatenka). Be rakto veikia puslapiai,
 API ir MCP serveris — tik modelio kvietimai praneša, kad rakto nėra.
 
-- `Dockerfile` turi du etapus: `composer:2` įdiegia bibliotekas pagal `composer.lock`, o galutiniame `php:8.4-apache`
-  atvaizde lieka tik tai, ko reikia veikimui. Raktas ir `config.local.php` į atvaizdą nepatenka (`.dockerignore`).
+- `Dockerfile` turi tris etapus: `composer:2` įdiegia bibliotekas pagal `composer.lock`; `test` prideda `tests/smoke.php`
+  (jį naudoja `smoke` paslauga); galutiniame `php:8.4-apache` atvaizde lieka tik tai, ko reikia veikimui. Raktas ir `config.local.php` į atvaizdą nepatenka (`.dockerignore`).
 - `healthz.php` tikrina bibliotekas ir duomenų bazę ir atsako 200 arba 503. Jį naudoja Docker `HEALTHCHECK`
   (`docker ps` rodo *healthy*); tinka ir platformos health check'ui ar uptime stebėjimui.
 - Duomenų bazė yra konteinerio viduje: po `docker compose down` ir `up` vėl pradiniai duomenys.
@@ -149,7 +157,7 @@ Kiekvienas `push` į `main` ir kiekvienas pull request paleidžia [GitHub Action
 | Darbas | Ką daro |
 |---|---|
 | **PHP 8.1 ir 8.4** | `composer validate` ir `install`, visų `.php` failų sintaksės patikra (`php -l`), DB sukūrimas, PHP įtaisytasis serveris ir dūmų testas |
-| **Docker** | atvaizdo kūrimas (žyma — commit SHA), konteinerio paleidimas, laukimas, kol `healthz.php` atsakys 200, ir tas pats dūmų testas per Apache |
+| **Docker Compose** | tos pačios komandos kaip aukščiau: `docker compose up --build -d --wait` (laukia *healthy*) ir `docker compose run smoke` — dūmų testas per Apache |
 
 Dūmų testas [`tests/smoke.php`](tests/smoke.php) API rakto nereikalauja ir modelio nekviečia, todėl nieko nekainuoja.
 Jis tikrina, ar programa veikia ir laikosi taisyklių: Ona mato savo siuntą 150, bet ne Jono 152; be žetono — 401;
@@ -157,11 +165,15 @@ JSON-RPC klaidų kodai; MCP `tools/list` ir `tools/call`; ar `.htaccess` slepia 
 ar `chat.php` pasiekia MCP serverį ir aiškiai praneša apie trūkstamą raktą.
 
 ```bash
-php tests/smoke.php http://localhost/metodine/llm --apache       # XAMPP
-php tests/smoke.php http://localhost:8080 --apache                # Docker
+docker compose run --rm --build smoke                            # Docker: nieko daugiau nereikia
+php tests/smoke.php http://localhost/metodine/llm --apache       # XAMPP: reikia PHP su curl ir composer install
 ```
 
-`--chat-without-key` naudokite tik serveriui be rakto (taip daro CI): su raktu `chat.php` kviestų mokamą modelį.
+Jei `php` ar `composer` nėra PATH kintamajame, nurodykite pilną kelią, pvz.,
+`C:\xampp\php\php.exe C:\xampp\php\composer.phar install`.
+
+`--chat-without-key` naudokite tik serveriui be rakto (taip daro CI): su raktu `chat.php` kviestų mokamą modelį —
+`docker compose run --rm smoke http://web --apache --chat-without-key`.
 
 > **Pabandykite:** `shared/db.php` funkcijoje `package_of()` pašalinkite `AND owner_id = ?` (ir `$userId` iš `execute()`)
 > ir sukurkite pull request. CI turi tapti raudonas: Ona pradės matyti Jono siuntą 152.
